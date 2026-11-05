@@ -266,6 +266,31 @@ Use Redfish for generic power orchestration; use native `/api` for HID, MSD, str
 
 ---
 
+## Multi-port switch — `switch.py` (Comet X / `rm4pe` only)
+
+**Confidence: High** for routes and query shapes; registration is **conditional**:
+`kvmd/apps/kvmd/__init__.py` builds `Switch` and `SwitchApi` only when
+`get_hw_model() == "rm4pe"`. Ports are 0-based channel indexes validated as
+`valid_float_f0`; the sysfs chain ignores out-of-range ports.
+
+| Method | Path | Query |
+|--------|------|-------|
+| GET | `/api/switch` | state: `model.ports[]`, `summary.active_port`, `video.links[]`, `usb_otg.links[]`, `edids`, `atx` |
+| POST | `/api/switch/set_active` | `port` |
+| POST | `/api/switch/set_active_prev` / `set_active_next` | — |
+| POST | `/api/switch/set_port_params` | `port`, optional `edid_id`, `dummy`, `name`, `atx_click_*_delay` |
+| POST | `/api/switch/set_beacon` | `state`, one of `port` / `uplink` / `downlink` |
+| POST | `/api/switch/set_colors` | per-role colour params |
+| POST | `/api/switch/reset` | `unit`, optional `bootloader` |
+| POST | `/api/switch/edids/create` / `change` / `remove` | EDID management |
+| POST | `/api/switch/atx/power` | `port`, `action=on\|off\|off_hard\|reset_hard` |
+| POST | `/api/switch/atx/click` | `port`, `button=power\|power_long\|reset` |
+
+WebSocket event name: `switch` (`server.py` `__EV_SWITCH_STATE`). In the
+published source the sysfs chain's `click_power` / `click_reset` are no-ops
+("sysfs 不支持，保留接口"), so per-port ATX behaviour on shipping firmware is
+unverified from source alone.
+
 ## GPIO and Fingerbot
 
 **Confidence: High** for routes; hardware optional

@@ -107,6 +107,10 @@ The server exposes Comet-specific hardware APIs in addition to HID and screensho
 | `comet_power_state` | Read ATX power/LED state. | Read-only; ATX board required for useful LEDs. |
 | `comet_atx_power(action)` | Power on/off/reset through the ATX add-on board. | Requires the ATX add-on board. Destructive. |
 | `comet_atx_click(button)` | Momentary power/reset button pulse. | Requires the ATX add-on board. Destructive. |
+| `comet_switch_state()` | Comet X (GL-RM4PE) channel inventory and active port. | Read-only. Fails with `SwitchUnavailable` on single-port Comets. |
+| `comet_switch_set_active(port)` | Make one Comet X channel own video, keyboard, mouse and media. | Destructive to the session: virtual media detaches; remount after. Confirms by re-reading state. |
+| `comet_switch_set_port_name(port, name)` | Name a Comet X channel. | Write, idempotent. |
+| `comet_switch_atx_power(port, action)` / `comet_switch_atx_click(port, button)` | Per-port ATX board actions on a Comet X. | Requires an ATX board on that channel. Not hardware-qualified for non-active channels. Destructive. |
 | `comet_sysinfo()` | Reads device metadata. | Read-only. |
 | `comet_capabilities()` | Discover supported subsystems on the connected unit. | Read-only. |
 | `comet_media_*` | Virtual media inventory, upload/fetch, mount/unmount, remove, reset. | Writes to device storage / changes boot media. |
@@ -128,7 +132,7 @@ These hints tell the client and operator what a tool can do. They do not grant o
 
 Read-only examples: `kvm_screenshot`, `kvm_screenshot_to_file`, `kvm_ocr_screenshot`, `kvm_status`, `comet_sysinfo`.
 
-Destructive or physical-input examples: `kvm_send_text`, `kvm_terminal_run`, `kvm_send_keys`, `kvm_hold_key`, mouse tools, `kvm_ocr_click`, `comet_atx_power`, `comet_atx_click`, `comet_media_upload`, `comet_media_mount`.
+Destructive or physical-input examples: `kvm_send_text`, `kvm_terminal_run`, `kvm_send_keys`, `kvm_hold_key`, mouse tools, `kvm_ocr_click`, `comet_atx_power`, `comet_atx_click`, `comet_switch_set_active`, `comet_switch_atx_power`, `comet_switch_atx_click`, `comet_media_upload`, `comet_media_mount`.
 
 ## 8. Security Model
 

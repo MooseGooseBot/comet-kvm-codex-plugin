@@ -188,6 +188,10 @@ Add to any MCP client config:
 | `comet_power_state(target?)` | Read ATX power/LED state |
 | `comet_atx_power(action, wait?, target?)` | Power on/off/reset through the ATX add-on board |
 | `comet_atx_click(button, wait?, target?)` | Momentary power/reset button pulse through the ATX add-on board |
+| `comet_switch_state(target?)` | Comet X (GL-RM4PE) only: ports, active channel, per-port video and USB link state |
+| `comet_switch_set_active(port, confirm_timeout_s?, target?)` | Comet X only: make a 0-based channel own video, HID and media, confirmed by re-reading state |
+| `comet_switch_set_port_name(port, name, target?)` | Comet X only: name a channel |
+| `comet_switch_atx_power(port, action, target?)` / `comet_switch_atx_click(port, button, target?)` | Comet X only: per-port ATX board actions |
 | `comet_sysinfo(target?)` | Retrieve device metadata |
 | `comet_capabilities(refresh?, target?)` | Discover and cache the connected unit's supported subsystems |
 | `comet_streamer_state(target?)` | Read capture/stream state |

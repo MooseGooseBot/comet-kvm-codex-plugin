@@ -34,6 +34,13 @@ from src.kvm_core.tools_media import (
     comet_media_unmount,
     comet_media_upload,
 )
+from src.kvm_core.tools_switch import (
+    comet_switch_atx_click,
+    comet_switch_atx_power,
+    comet_switch_set_active,
+    comet_switch_set_port_name,
+    comet_switch_state,
+)
 from src.kvm_core.tools_admin import (
     comet_metrics,
     comet_recorder_start,
@@ -67,6 +74,11 @@ __all__ = [
     "comet_redfish_power",
     "comet_streamer_set_params",
     "comet_streamer_state",
+    "comet_switch_atx_click",
+    "comet_switch_atx_power",
+    "comet_switch_set_active",
+    "comet_switch_set_port_name",
+    "comet_switch_state",
     "comet_sysinfo",
     "comet_tailscale_status",
     "comet_wol_list",
