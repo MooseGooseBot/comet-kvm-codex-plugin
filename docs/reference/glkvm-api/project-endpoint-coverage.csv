@@ -31,3 +31,10 @@ GET,/api/export/prometheus/metrics,prometheus_metrics,comet_metrics,true,uncondi
 GET,/api/tailscale/config,tailscale_config,,true,unconditional,not_recorded,no,Tailscale integration,none,not_qualified,src/kvm_core/comet/client.py,
 GET,/redfish/v1/Systems/0,redfish_system,,true,unconditional,not_recorded,no,ATX add-on for meaningful power state,none,not_qualified,src/kvm_core/comet/client.py,
 POST,/redfish/v1/Systems/0/Actions/ComputerSystem.Reset,redfish_reset,comet_redfish_power,true,unconditional,not_recorded,no,ATX add-on and motherboard wiring,none,not_qualified,src/kvm_core/comet/client.py,
+GET,/api/switch,switch_state,comet_switch_state;comet_switch_set_active;comet_capabilities,true,conditional,not_recorded,no,Comet X (GL-RM4PE); route absent on single-port models,shape,not_qualified,src/kvm_core/comet/client.py,tests/test_switch_tools.py
+POST,/api/switch/set_active,switch_set_active,comet_switch_set_active,true,conditional,not_recorded,no,Comet X (GL-RM4PE),shape,not_qualified,src/kvm_core/comet/client.py,tests/test_switch_tools.py
+POST,/api/switch/set_active_prev,switch_set_active_prev,,true,conditional,not_recorded,no,Comet X (GL-RM4PE),none,not_qualified,src/kvm_core/comet/client.py,
+POST,/api/switch/set_active_next,switch_set_active_next,,true,conditional,not_recorded,no,Comet X (GL-RM4PE),none,not_qualified,src/kvm_core/comet/client.py,
+POST,/api/switch/set_port_params,switch_set_port_params,comet_switch_set_port_name,true,conditional,not_recorded,no,Comet X (GL-RM4PE),shape,not_qualified,src/kvm_core/comet/client.py,tests/test_switch_tools.py
+POST,/api/switch/atx/power,switch_atx_power,comet_switch_atx_power,true,conditional,not_recorded,no,Comet X (GL-RM4PE) and an ATX board on that channel,shape,not_qualified,src/kvm_core/comet/client.py,tests/test_switch_tools.py
+POST,/api/switch/atx/click,switch_atx_click,comet_switch_atx_click,true,conditional,not_recorded,no,Comet X (GL-RM4PE) and an ATX board on that channel,shape,not_qualified,src/kvm_core/comet/client.py,tests/test_switch_tools.py

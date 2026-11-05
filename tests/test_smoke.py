@@ -71,6 +71,11 @@ EXPECTED_TOOLS = {
     "comet_metrics",
     "comet_tailscale_status",
     "comet_redfish_power",
+    "comet_switch_state",
+    "comet_switch_set_active",
+    "comet_switch_set_port_name",
+    "comet_switch_atx_power",
+    "comet_switch_atx_click",
     "kvm_select_target",
     # Deprecated raw aliases remain public compatibility API.
     # Tier 1 stateful BIOS tools

@@ -134,6 +134,36 @@ MCP aliases: `reset` → `reset_hard`, `force_off` → `off_hard`.
 
 MCP tools: `comet_power_state`, `comet_atx_power`, `comet_atx_click` (see tool table). Treat this section as the **firmware** contract; historical client/doc mismatches are recorded in the [2026-07-15 audit snapshot](../research/glkvm-client-audit-2026-07-15.md).
 
+### Multi-port switch (Comet X / GL-RM4PE only)
+
+**Confidence: High** for routes and query shapes (`kvmd/apps/kvmd/api/switch.py`);
+**not live-qualified** by this project. `kvmd/apps/kvmd/__init__.py` constructs
+`SwitchApi` only when the hardware model is `rm4pe`, so on a single-port Comet
+`GET /api/switch` fails and the client raises `SwitchUnavailable`. Ports are
+**0-based** channel indexes; the firmware ignores an out-of-range port silently,
+so the MCP validates against `model.ports` first.
+
+| Method | Path | Query |
+|--------|------|-------|
+| GET | `/api/switch` | — `model.ports[]`, `summary.active_port` / `active_id` / `synced`, `video.links[]`, `usb_otg.links[]`, `edids`, `atx` |
+| POST | `/api/switch/set_active` | `port=N` |
+| POST | `/api/switch/set_active_prev` / `set_active_next` | — |
+| POST | `/api/switch/set_port_params` | `port=N`, any of `name`, `edid_id`, `dummy`, `atx_click_power_delay`, `atx_click_power_long_delay`, `atx_click_reset_delay` |
+| POST | `/api/switch/atx/power` | `port=N`, `action=on\|off\|off_hard\|reset_hard` |
+| POST | `/api/switch/atx/click` | `port=N`, `button=power\|power_long\|reset` |
+| POST | `/api/switch/edids/*`, `/api/switch/set_beacon`, `/api/switch/set_colors`, `/api/switch/reset` | not wrapped by this project |
+
+The WebSocket pushes a `switch` event on change, but third-party hardware
+checks saw it arrive late or not at all; `comet_switch_set_active` confirms
+with `GET /api/switch` instead. One channel owns HDMI, HID and virtual media at
+a time, and **virtual media detaches on every switch**. In the published 1.10.0
+source the per-port ATX routes reach a sysfs chain whose `click_power` /
+`click_reset` are empty, so whether `/api/switch/atx/*` drives a non-active
+channel on shipping firmware is unconfirmed.
+
+MCP tools: `comet_switch_state`, `comet_switch_set_active`,
+`comet_switch_set_port_name`, `comet_switch_atx_power`, `comet_switch_atx_click`.
+
 ### Mass storage (MSD)
 
 Virtual media lifecycle (**High** confidence — `msd.py`):
@@ -188,6 +218,7 @@ those fields should be inferred from another.
 | `POST /api/atx/power` / `click` | **Not live-tested** | No destructive power tests in smoke |
 | `POST /api/msd/write` + mount lifecycle | **Not live-tested** | Upload not invoked in 2026-07-10 verification |
 | WOL wake, Redfish power, recorder start/stop, Tailscale configuration | **Not live-tested** | Source-derived operations; no mutation was sent |
+| `/api/switch/*` (Comet X) | **Not live-tested** | Source-derived; the deployed unit is a single-port GL-RM10 where the route set is absent. Loopback contract tests only |
 | Offline CI | Yes | stdio MCP list-tools smoke, executable loopback HTTP/WebSocket contracts, and real Tesseract OCR (see CI) |
 
 Manual live smoke: `.github/workflows/live-smoke.yml` (Doppler + self-hosted
@@ -251,6 +282,11 @@ This section is **this repo’s tool surface**, not the full firmware catalog. K
 | `comet_metrics` | `(target?)` | read-only | Prometheus metrics text |
 | `comet_tailscale_status` | `(target?)` | read-only | Tailscale status |
 | `comet_redfish_power` | `(reset_type, target?)` | write, destructive | Redfish ComputerSystem.Reset |
+| `comet_switch_state` | `(target?)` | read-only | GET `/api/switch` (Comet X only) |
+| `comet_switch_set_active` | `(port, confirm_timeout_s?, target?)` | write, destructive | Select the active channel, confirm by re-reading state |
+| `comet_switch_set_port_name` | `(port, name, target?)` | write | `set_port_params?name=` |
+| `comet_switch_atx_power` | `(port, action, target?)` | write, destructive | Per-port ATX power (`reset`→`reset_hard`) |
+| `comet_switch_atx_click` | `(port, button, target?)` | write, destructive | Per-port `power` / `power_long` / `reset` |
 
 This table is **MCP tool names only**. Curated upstream facts stay in the [research catalog](../research/glkvm-api-surface.md); the full route set stays in the [generated corpus](glkvm-api/README.md). Historical client mismatches (if any) are snapshotted in the [2026-07-15 audit](../research/glkvm-client-audit-2026-07-15.md) — do not treat audit blockers as current API facts.
 

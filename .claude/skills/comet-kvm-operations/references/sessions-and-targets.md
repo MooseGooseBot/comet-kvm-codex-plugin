@@ -80,3 +80,13 @@ instead.
 Use it to inspect the configured defaults (`default_host`, `default_username`,
 `default_target`, `auto_connect`), the live connection, and capture
 diagnostics, not as a precondition for calling a device tool.
+
+## Comet X channels are not targets
+
+A Comet X (GL-RM4PE) is one target with four channels. `target=` still names
+the Comet; the channel is chosen with `comet_switch_set_active(port)` (0-based)
+and read with `comet_switch_state`. Before console input on a Comet X, confirm
+`summary.active_port` is the machine you mean, then capture the screen. After
+a switch, remount virtual media if the new machine needs it; it detaches on
+every switch. On a single-port Comet the switch tools fail with
+`SwitchUnavailable`, which is the normal answer, not a fault.

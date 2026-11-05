@@ -99,6 +99,18 @@ ATX_POWER_ALIASES = {
 }
 ATX_POWER_ACTIONS = set(ATX_POWER_ALIASES.values())
 ATX_CLICK_BUTTONS = {"power", "power_long", "reset"}
+SWITCH_PORT_PARAMS = {
+    "name",
+    "edid_id",
+    "dummy",
+    "atx_click_power_delay",
+    "atx_click_power_long_delay",
+    "atx_click_reset_delay",
+}
+
+
+class SwitchUnavailable(RuntimeError):
+    """The connected Comet does not register the multi-port switch API."""
 
 MSD_UPLOAD_TIMEOUT = httpx.Timeout(600.0, connect=30.0)
 
@@ -695,6 +707,80 @@ class CometClient:
             r.raise_for_status()
         return {"button": button, "wait": wait, "status": r.status_code, "result": _unwrap_ok_json(r)}
 
+    # ── Multi-port switch (Comet X / rm4pe) ────────────────────────
+    #
+    # kvmd registers SwitchApi only when the hardware model is "rm4pe"
+    # (kvmd/apps/kvmd/__init__.py). On a single-port Comet GET /api/switch
+    # fails, and every method here raises SwitchUnavailable instead of a bare
+    # HTTP error so tools can say why.
+
+    async def switch_state(self) -> dict:
+        """Read GET /api/switch (model.ports, summary.active_port, video and USB links)."""
+        if not self.http:
+            raise RuntimeError("Not connected")
+        r = await self.http.get(f"{self.base_url}/api/switch")
+        if not r.is_success:
+            raise SwitchUnavailable(
+                "This Comet has no multi-port switch API: "
+                f"GET /api/switch returned HTTP {r.status_code}. "
+                "kvmd enables it only on the Comet X (GL-RM4PE)."
+            )
+        return _unwrap_ok_json(r)
+
+    async def _switch_post(self, path: str, params: dict[str, Any]) -> dict:
+        if not self.http:
+            raise RuntimeError("Not connected")
+        r = await self.http.post(f"{self.base_url}{path}", params=params)
+        if r.status_code == 404:
+            raise SwitchUnavailable(
+                f"POST {path} is not registered on this Comet; "
+                "kvmd enables the switch API only on the Comet X (GL-RM4PE)."
+            )
+        r.raise_for_status()
+        return {"status": r.status_code, "result": _unwrap_ok_json(r)}
+
+    async def switch_set_active(self, port: int) -> dict:
+        """POST /api/switch/set_active?port=N (0-based channel)."""
+        return await self._switch_post("/api/switch/set_active", {"port": int(port)})
+
+    async def switch_set_active_prev(self) -> dict:
+        return await self._switch_post("/api/switch/set_active_prev", {})
+
+    async def switch_set_active_next(self) -> dict:
+        return await self._switch_post("/api/switch/set_active_next", {})
+
+    async def switch_set_port_params(self, port: int, **params: Any) -> dict:
+        """POST /api/switch/set_port_params?port=N&name=...&edid_id=...&dummy=...
+
+        Only parameters that are not None are sent. Firmware accepts name,
+        edid_id, dummy, atx_click_power_delay, atx_click_power_long_delay and
+        atx_click_reset_delay.
+        """
+        unknown = set(params) - SWITCH_PORT_PARAMS
+        if unknown:
+            raise ValueError(f"Unknown switch port params {sorted(unknown)}. Use: {sorted(SWITCH_PORT_PARAMS)}")
+        query: dict[str, Any] = {"port": int(port)}
+        for key, value in params.items():
+            if value is None:
+                continue
+            query[key] = str(value).lower() if isinstance(value, bool) else value
+        return await self._switch_post("/api/switch/set_port_params", query)
+
+    async def switch_atx_power(self, port: int, action: str) -> dict:
+        """POST /api/switch/atx/power?port=N&action=on|off|off_hard|reset_hard."""
+        action = ATX_POWER_ALIASES.get(action, action)
+        if action not in ATX_POWER_ACTIONS:
+            raise ValueError(f"Invalid ATX action '{action}'. Use: {sorted(ATX_POWER_ACTIONS)}")
+        result = await self._switch_post("/api/switch/atx/power", {"port": int(port), "action": action})
+        return {"port": int(port), "action": action, **result}
+
+    async def switch_atx_click(self, port: int, button: str) -> dict:
+        """POST /api/switch/atx/click?port=N&button=power|power_long|reset."""
+        if button not in ATX_CLICK_BUTTONS:
+            raise ValueError(f"Invalid ATX button '{button}'. Use: {sorted(ATX_CLICK_BUTTONS)}")
+        result = await self._switch_post("/api/switch/atx/click", {"port": int(port), "button": button})
+        return {"port": int(port), "button": button, **result}
+
     # ── System Info / Capabilities ─────────────────────────────────
 
     async def get_sysinfo(self, fields: str = "system,meta,extras") -> dict:
@@ -746,6 +832,7 @@ class CometClient:
             _safe_get("/api/recorder"),
             _safe_get("/api/tailscale/status"),
             _safe_get("/api/wol/list"),
+            _safe_get("/api/switch"),
         )
         subsystem_names = (
             "hid",
@@ -756,6 +843,7 @@ class CometClient:
             "recorder",
             "tailscale",
             "wol",
+            "switch",
         )
         subsystems = dict(zip(subsystem_names, subsystem_results))
 
